@@ -1,0 +1,50 @@
+#include <WiFi.h>
+#include <WebServer.h>
+
+// --- НАСТРОЙКИ WI-FI ---
+const char* ssid = "название вай фай сети";
+const char* password = "пароль вай фай сети";
+
+// Создаем сервер на порту 80 (стандартный порт для HTTP)
+WebServer server(80);
+
+// Функция, которая формирует страницу при заходе на IP
+void handleRoot() {
+  String html = "<html><head><meta charset='utf-8'></head><body>";
+  html += "<h1>Привет из ESP32!</h1>";
+  html += "<p>Локальный сервер успешно запущен.</p>";
+  html += "</body></html>";
+  
+  server.send(200, "text/html", html);
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  
+  Serial.println("Подключение к Wi-Fi...");
+  WiFi.begin(ssid, password);
+
+  // Ждем подключения к Wi-Fi
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("Wi-Fi подключен!");
+  Serial.print("IP-адрес ESP32: ");
+  Serial.println(WiFi.localIP()); // Запомните этот IP!
+
+  // Настраиваем сервер: при заходе на главную страницу вызывать handleRoot
+  server.on("/", handleRoot);
+  
+  // Запускаем сервер
+  server.begin();
+  Serial.println("Сервер запущен.");
+}
+
+void loop() {
+  // Сервер должен постоянно проверять входящие запросы
+  server.handleClient();
+}
