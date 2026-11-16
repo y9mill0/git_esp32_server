@@ -3,82 +3,206 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ESP32 · Автономный сервер</title>
+  <title>ESP32 TERMINAL</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: 'Segoe UI', Tahoma, sans-serif;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      color: #e0e0e0; min-height: 100vh; padding: 20px;
-      display: flex; justify-content: center; align-items: flex-start;
+      font-family: 'VT323', monospace;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      text-shadow: 0 0 5px #ffffff;
+      position: relative;
+      overflow-x: hidden;
     }
+
+    /* Эффект сканлайнов (CRT-монитор) */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.25),
+        rgba(0, 0, 0, 0.25) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* Виньетка по краям */
+    body::after {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle, transparent 60%, rgba(0,0,0,0.75) 100%);
+      pointer-events: none;
+      z-index: 11;
+    }
+
     .container {
-      max-width: 720px; width: 100%;
-      background: rgba(30, 30, 50, 0.85);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px; padding: 30px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+      max-width: 700px;
+      width: 100%;
+      background: #000000;
+      border: 2px solid #f0f0f0;
+      padding: 25px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.05);
+      position: relative;
+      z-index: 5;
     }
-    h1 {
-      text-align: center; font-size: 28px;
-      background: linear-gradient(90deg, #4facfe, #00f2fe);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent; margin-bottom: 8px;
+
+    .header {
+      border-bottom: 1px dashed #f0f0f0;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+      font-size: 22px;
     }
-    .subtitle { text-align: center; color: #8892a0; font-size: 14px; margin-bottom: 25px; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 25px; }
-    .stat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 15px; text-align: center; }
-    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #8892a0; margin-bottom: 6px; }
-    .stat-value { font-size: 16px; font-weight: 600; color: #4facfe; word-break: break-all; }
-    .control-section { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-    .control-section h2 { font-size: 16px; margin-bottom: 15px; color: #ffffff; }
-    .led-row { display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap; }
-    .led-indicator { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-    .dot { width: 16px; height: 16px; border-radius: 50%; background: #00e676; box-shadow: 0 0 15px #00e676; animation: pulse 1.5s infinite; transition: background 0.3s, box-shadow 0.3s; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    button { background: linear-gradient(90deg, #4facfe, #00f2fe); border: none; color: #0f172a; padding: 12px 24px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform 0.2s; }
-    button:hover { transform: translateY(-2px); }
-    button:active { transform: translateY(0); }
-    .footer { text-align: center; color: #5a6472; font-size: 12px; margin-top: 20px; }
+
+    .header-line {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .cursor::after {
+      content: "_";
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      50.1%, 100% { opacity: 0; }
+    }
+
+    .box {
+      border: 1px solid #f0f0f0;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .box-title {
+      font-size: 16px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #f0f0f0;
+      padding-bottom: 5px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 18px;
+      padding: 4px 0;
+      border-bottom: 1px dotted #333333;
+    }
+
+    .row:last-child { border-bottom: none; }
+
+    .label { color: #888888; }
+    .value { color: #f0f0f0; }
+
+    .temp-big {
+      font-size: 52px;
+      text-align: center;
+      padding: 15px 0;
+      letter-spacing: 4px;
+      animation: flicker 4s infinite;
+      transition: color 0.3s;
+    }
+
+    @keyframes flicker {
+      0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 1; }
+      20%, 21.999%, 63%, 63.999%, 65%, 69.999% { opacity: 0.7; }
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #888888;
+      text-align: center;
+      border-top: 1px dashed #f0f0f0;
+      padding-top: 10px;
+    }
+
+    .glow {
+      text-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>⚡ ESP32 Автономный Сервер</h1>
-    <p class="subtitle">Работает без домашнего Wi-Fi роутера</p>
-    <div class="stats">
-      <div class="stat-card"><div class="stat-label">IP-адрес</div><div class="stat-value">192.168.4.1</div></div>
-      <div class="stat-card"><div class="stat-label">Время работы</div><div class="stat-value">0ч 5м 23с</div></div>
-      <div class="stat-card"><div class="stat-label">Запросов</div><div class="stat-value">42</div></div>
-    </div>
-    <div class="control-section">
-      <h2>💡 Управление встроенным светодиодом</h2>
-      <div class="led-row">
-        <div class="led-indicator">
-          <span class="dot" id="dot"></span>
-          <span>Светодиод: <span id="ledText">ВКЛЮЧЕН</span></span>
-        </div>
-        <button onclick="toggleLED()">Переключить</button>
+    <div class="header glow">
+      <div class="header-line">
+        <span>ESP32@TERMINAL:~#</span>
+        <span class="cursor">ONLINE</span>
       </div>
     </div>
-    <div class="footer">Сеть: ESP32_Server · ESP32 Local Server</div>
+
+    <div class="box">
+      <div class="box-title">[ SYSTEM INFO ]</div>
+      <div class="row"><span class="label">IP ADDRESS ....</span><span class="value" id="ip">192.168.4.1</span></div>
+      <div class="row"><span class="label">UPTIME ........</span><span class="value" id="uptime">0h 0m 0s</span></div>
+      <div class="row"><span class="label">REQUESTS ......</span><span class="value" id="requests">0</span></div>
+      <div class="row"><span class="label">SSID ..........</span><span class="value">ESP32_Terminal</span></div>
+    </div>
+
+    <div class="box">
+      <div class="box-title">[ CHIP TEMPERATURE ]</div>
+      <div class="temp-big glow" id="temp">--.- °C</div>
+    </div>
+
+    <div class="footer">
+      SYS_READY · ESP32 CORE TEMP SENSOR · LIVE UPDATE
+    </div>
   </div>
+
   <script>
-    let ledState = true;
-    function toggleLED() {
-      ledState = !ledState;
-      const dot = document.getElementById('dot');
-      const text = document.getElementById('ledText');
-      if (ledState) {
-        dot.style.background = '#00e676';
-        dot.style.boxShadow = '0 0 15px #00e676';
-        text.textContent = 'ВКЛЮЧЕН';
-      } else {
-        dot.style.background = '#ff5252';
-        dot.style.boxShadow = '0 0 15px #ff5252';
-        text.textContent = 'ВЫКЛЮЧЕН';
-      }
+    // --- ЗАГЛУШКА ДЛЯ ПРЕДПРОСМОТРА ---
+    // В реальном коде ESP32 эти данные приходят с сервера.
+    // Здесь мы симулируем их, чтобы вы увидели, как работает живое обновление.
+    
+    let simTemp = 45.0;
+    let simUptime = 0;
+    let simRequests = 42;
+
+    function updateTemp() {
+      // Симуляция колебания температуры (как будто чип нагревается/остывает)
+      simTemp += (Math.random() - 0.45) * 0.8;
+      if (simTemp < 38) simTemp = 38;
+      if (simTemp > 70) simTemp = 70;
+      
+      document.getElementById('temp').textContent = simTemp.toFixed(1) + ' °C';
     }
+
+    function updateSystemInfo() {
+      simUptime++;
+      simRequests++;
+      
+      const h = Math.floor(simUptime / 3600);
+      const m = Math.floor((simUptime % 3600) / 60);
+      const s = simUptime % 60;
+      
+      document.getElementById('uptime').textContent = h + 'h ' + m + 'm ' + s + 's';
+      document.getElementById('requests').textContent = simRequests;
+    }
+
+    // Температура обновляется каждую секунду (плавно, без перезагрузки)
+    updateTemp();
+    setInterval(updateTemp, 1000);
+
+    // Системная информация — раз в 5 секунд
+    setInterval(updateSystemInfo, 5000);
   </script>
 </body>
 </html>
